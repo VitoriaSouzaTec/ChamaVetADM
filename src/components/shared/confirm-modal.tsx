@@ -15,6 +15,8 @@ interface ConfirmModalProps {
   requiredWord?: string // Ex: "CONFIRMAR" ou o e-mail do usuário
   destructive?: boolean
   confirmButtonText?: string
+  children?: React.ReactNode // campos extras (ex: duração da suspensão)
+  requireReason?: boolean // false quando a ação não registra motivo
 }
 
 export function ConfirmModal({
@@ -26,13 +28,15 @@ export function ConfirmModal({
   requiredWord = 'CONFIRMAR',
   destructive = true,
   confirmButtonText = 'Confirmar Ação',
+  children,
+  requireReason = true,
 }: ConfirmModalProps) {
   const [reason, setReason] = useState('')
   const [typedWord, setTypedWord] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const isReasonValid = reason.trim().length >= 5
+  const isReasonValid = !requireReason || reason.trim().length >= 5
   const isWordValid = !requiredWord || typedWord.trim() === requiredWord
   const canSubmit = isReasonValid && isWordValid && !isSubmitting
 
@@ -94,6 +98,8 @@ export function ConfirmModal({
           </div>
 
           <div className="mt-6 space-y-4">
+            {children}
+            {requireReason && (
             <div>
               <label className="block text-sm font-medium text-[#1E293B] mb-1">
                 Motivo da ação <span className="text-[#DC2626]">*</span> (mínimo 5 caracteres)
@@ -112,6 +118,7 @@ export function ConfirmModal({
                 </p>
               )}
             </div>
+            )}
 
             {requiredWord && (
               <div>

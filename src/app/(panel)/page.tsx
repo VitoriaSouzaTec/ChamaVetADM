@@ -9,14 +9,13 @@ import {
   FileText,
   TrendingUp,
   Star,
-  ArrowUpRight,
   ShieldAlert,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { DashboardCharts } from '@/components/dashboard/dashboard-charts'
 import { formatCurrency } from '@/lib/format'
-import { createClient } from '@/lib/supabase/server'
+import { getStaffContext, friendlyError } from '@/server/context'
 import type { AdminRole } from '@/types/database'
 
 interface DashboardMetrics {
@@ -38,100 +37,70 @@ interface DashboardMetrics {
   chart_revenue?: Array<{ date: string; receita_cents: number }>
 }
 
-export default async function DashboardPage() {
-  let role: AdminRole = 'admin'
-  let metrics: DashboardMetrics | null = null
+const PERIODS = { '1': 'Hoje', '7': '7 dias', '30': '30 dias' } as const
+type PeriodKey = keyof typeof PERIODS
 
+async function loadMetrics(days: number): Promise<{
+  role: AdminRole
+  metrics: DashboardMetrics | null
+  metricsError: string | null
+}> {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const { supabase, role } = await getStaffContext()
+    const from = new Date()
+    if (days === 1) from.setHours(0, 0, 0, 0)
+    else from.setTime(Date.now() - days * 24 * 60 * 60 * 1000)
 
-    if (user) {
-      role = (user.app_metadata?.admin_role ||
-        user.app_metadata?.role ||
-        'admin') as AdminRole
-    }
-
-    // Chamar RPC admin_dashboard_metrics
-    const rpcFn = supabase.rpc as unknown as (
-      name: string,
-      args: Record<string, unknown>
-    ) => Promise<{ data: DashboardMetrics | null }>
-
-    const { data } = await rpcFn('admin_dashboard_metrics', {
-      p_from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    const { data, error } = await supabase.rpc('admin_dashboard_metrics', {
+      p_from: from.toISOString(),
       p_to: new Date().toISOString(),
     })
-    metrics = data
-  } catch {
-    // Modo de demonstração / fallback quando Supabase ainda não inicializou as tabelas
+    if (error) return { role, metrics: null, metricsError: friendlyError(error.message) }
+    return { role, metrics: data as DashboardMetrics | null, metricsError: null }
+  } catch (err) {
+    return {
+      role: 'support',
+      metrics: null,
+      metricsError: err instanceof Error ? err.message : 'Falha ao carregar métricas.',
+    }
   }
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>
+}) {
+  const params = await searchParams
+  const period: PeriodKey = params.period && params.period in PERIODS ? (params.period as PeriodKey) : '30'
+
+  const { role, metrics, metricsError } = await loadMetrics(Number(period))
 
   const isAdmin = role === 'admin'
+  const show = (value: number | string | null | undefined) => value ?? '—'
 
-  // Dados com fallback para visualização inicial
   const pendingAttention = {
-    verifications: metrics?.pending_verifications ?? 8,
-    openReports: metrics?.open_reports ?? 3,
-    highPriorityReports: metrics?.high_priority_reports ?? 1,
-    failedPayments: metrics?.failed_payments ?? 2,
-    staleUrgentRequests: metrics?.stale_urgent_requests ?? 2,
+    verifications: show(metrics?.pending_verifications),
+    openReports: show(metrics?.open_reports),
+    highPriorityReports: show(metrics?.high_priority_reports),
+    failedPayments: show(metrics?.failed_payments),
+    staleUrgentRequests: show(metrics?.stale_urgent_requests),
   }
 
   const kpis = {
-    newUsers: metrics?.new_users_total ?? 142,
-    newUsersChange: '+18.4%',
-    requestsPublished: metrics?.requests_published ?? 86,
-    requestsChange: '+12.0%',
-    fillRate: metrics?.fill_rate_percent ?? 78.5,
-    fillRateChange: '+4.2%',
-    medianTimeToInterest: metrics?.median_time_to_interest ?? '34 min',
-    activeSubscriptions: metrics?.active_subscriptions ?? 230,
-    mrrCents: metrics?.mrr_cents ?? 227700, // R$ 2.277,00
-    averageRating: metrics?.average_rating ?? 4.85,
+    newUsers: show(metrics?.new_users_total),
+    requestsPublished: show(metrics?.requests_published),
+    fillRate: metrics?.fill_rate_percent != null ? `${metrics.fill_rate_percent}%` : '—',
+    medianTimeToInterest: show(metrics?.median_time_to_interest),
+    activeSubscriptions: show(metrics?.active_subscriptions),
+    mrr: metrics?.mrr_cents != null ? formatCurrency(metrics.mrr_cents) : '—',
+    averageRating: metrics?.average_rating != null ? Number(metrics.average_rating).toFixed(2) : '—',
   }
 
-  // Dados para gráficos de demonstração
-  const requestsData = metrics?.chart_requests ?? [
-    { date: '24/09', publicadas: 8, preenchidas: 6 },
-    { date: '25/09', publicadas: 12, preenchidas: 10 },
-    { date: '26/09', publicadas: 15, preenchidas: 11 },
-    { date: '27/09', publicadas: 10, preenchidas: 9 },
-    { date: '28/09', publicadas: 18, preenchidas: 15 },
-    { date: '29/09', publicadas: 14, preenchidas: 12 },
-    { date: '30/09', publicadas: 20, preenchidas: 17 },
-  ]
-
-  const registrationsData = metrics?.chart_registrations ?? [
-    { date: '24/09', vet: 6, auxiliar: 4, clinica: 2 },
-    { date: '25/09', vet: 9, auxiliar: 5, clinica: 3 },
-    { date: '26/09', vet: 12, auxiliar: 7, clinica: 4 },
-    { date: '27/09', vet: 8, auxiliar: 3, clinica: 2 },
-    { date: '28/09', vet: 14, auxiliar: 6, clinica: 5 },
-    { date: '29/09', vet: 11, auxiliar: 8, clinica: 3 },
-    { date: '30/09', vet: 16, auxiliar: 9, clinica: 6 },
-  ]
-
-  const specialtiesData = metrics?.chart_specialties ?? [
-    { name: 'Cirurgia Geral', count: 42 },
-    { name: 'Ultrassonografia', count: 35 },
-    { name: 'Dermatologia', count: 28 },
-    { name: 'Cardiologia', count: 22 },
-    { name: 'Anestesiologia', count: 19 },
-    { name: 'Ortopedia', count: 14 },
-  ]
-
-  const revenueData = metrics?.chart_revenue ?? [
-    { date: '24/09', receita_cents: 18500 },
-    { date: '25/09', receita_cents: 29800 },
-    { date: '26/09', receita_cents: 34200 },
-    { date: '27/09', receita_cents: 22000 },
-    { date: '28/09', receita_cents: 48900 },
-    { date: '29/09', receita_cents: 38000 },
-    { date: '30/09', receita_cents: 56400 },
-  ]
+  const requestsData = metrics?.chart_requests ?? []
+  const registrationsData = metrics?.chart_registrations ?? []
+  const specialtiesData = metrics?.chart_specialties ?? []
+  const revenueData = metrics?.chart_revenue ?? []
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -148,17 +117,27 @@ export default async function DashboardPage() {
 
         {/* Seletor de período */}
         <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-[#E2E8F0] shadow-xs text-xs">
-          <button className="px-3 py-1.5 rounded-lg text-[#64748B] hover:text-[#1E293B]">
-            Hoje
-          </button>
-          <button className="px-3 py-1.5 rounded-lg text-[#64748B] hover:text-[#1E293B]">
-            7 dias
-          </button>
-          <button className="px-3 py-1.5 rounded-lg bg-[#0F766E] text-white font-semibold shadow-xs">
-            30 dias
-          </button>
+          {(Object.keys(PERIODS) as PeriodKey[]).map((key) => (
+            <Link
+              key={key}
+              href={key === '30' ? '/' : `/?period=${key}`}
+              className={`px-3 py-1.5 rounded-lg ${
+                period === key
+                  ? 'bg-[#0F766E] text-white font-semibold shadow-xs'
+                  : 'text-[#64748B] hover:text-[#1E293B]'
+              }`}
+            >
+              {PERIODS[key]}
+            </Link>
+          ))}
         </div>
       </div>
+
+      {metricsError && (
+        <div className="p-4 rounded-xl bg-[#FEE2E2] border border-[#FECACA] text-sm text-[#DC2626]">
+          <strong>Métricas indisponíveis:</strong> {metricsError} (função admin_dashboard_metrics)
+        </div>
+      )}
 
       {/* Seção 1: Precisa de Atenção */}
       <div>
@@ -213,7 +192,7 @@ export default async function DashboardPage() {
           </Link>
 
           {/* Card 3: Solicitações Urgentes Sem Interessados */}
-          <Link href="/solicitacoes?filter=urgent_stale">
+          <Link href="/solicitacoes?stale=true">
             <Card className="hover:border-[#0F766E] transition-all hover:shadow-md cursor-pointer border-l-4 border-l-[#F97316]">
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
@@ -253,18 +232,20 @@ export default async function DashboardPage() {
               </Card>
             </Link>
           ) : (
-            <Card className="border-l-4 border-l-[#0F766E]">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-[#64748B]">SLA Suporte</p>
-                  <p className="text-2xl font-bold text-[#1E293B] mt-1">98.2%</p>
-                  <p className="text-[11px] text-[#16A34A] font-medium mt-1">Dentro da meta 24h</p>
-                </div>
-                <div className="h-10 w-10 rounded-xl bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center">
-                  <TrendingUp className="h-5 w-5" />
-                </div>
-              </CardContent>
-            </Card>
+            <Link href="/denuncias">
+              <Card className="hover:border-[#0F766E] transition-all hover:shadow-md cursor-pointer border-l-4 border-l-[#DC2626]">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-[#64748B]">Denúncias Alta Prioridade</p>
+                    <p className="text-2xl font-bold text-[#1E293B] mt-1">{pendingAttention.highPriorityReports}</p>
+                    <p className="text-[11px] text-[#DC2626] font-medium mt-1">Meta de resposta: 4h</p>
+                  </div>
+                  <div className="h-10 w-10 rounded-xl bg-[#FEE2E2] text-[#DC2626] flex items-center justify-center">
+                    <TrendingUp className="h-5 w-5" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           )}
         </div>
       </div>
@@ -272,7 +253,7 @@ export default async function DashboardPage() {
       {/* Seção 2: KPIs do Período */}
       <div>
         <h2 className="text-sm font-bold uppercase tracking-wider text-[#64748B] mb-3">
-          Métricas Chave (Últimos 30 Dias)
+          Métricas Chave ({PERIODS[period]})
         </h2>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -286,10 +267,7 @@ export default async function DashboardPage() {
               <div className="text-2xl font-bold text-[#1E293B] mt-2">
                 {kpis.newUsers}
               </div>
-              <div className="flex items-center gap-1 text-[11px] text-[#16A34A] font-semibold mt-1">
-                <ArrowUpRight className="h-3 w-3" />
-                <span>{kpis.newUsersChange} vs período anterior</span>
-              </div>
+              <div className="text-[11px] text-[#64748B] mt-1">No período selecionado</div>
             </CardContent>
           </Card>
 
@@ -303,10 +281,7 @@ export default async function DashboardPage() {
               <div className="text-2xl font-bold text-[#1E293B] mt-2">
                 {kpis.requestsPublished}
               </div>
-              <div className="flex items-center gap-1 text-[11px] text-[#16A34A] font-semibold mt-1">
-                <ArrowUpRight className="h-3 w-3" />
-                <span>{kpis.requestsChange} vs período anterior</span>
-              </div>
+              <div className="text-[11px] text-[#64748B] mt-1">No período selecionado</div>
             </CardContent>
           </Card>
 
@@ -318,12 +293,9 @@ export default async function DashboardPage() {
                 <TrendingUp className="h-4 w-4" />
               </div>
               <div className="text-2xl font-bold text-[#1E293B] mt-2">
-                {kpis.fillRate}%
+                {kpis.fillRate}
               </div>
-              <div className="flex items-center gap-1 text-[11px] text-[#16A34A] font-semibold mt-1">
-                <ArrowUpRight className="h-3 w-3" />
-                <span>{kpis.fillRateChange} preenchidas (FILLED)</span>
-              </div>
+              <div className="text-[11px] text-[#64748B] mt-1">Publicadas que viraram FILLED</div>
             </CardContent>
           </Card>
 
@@ -353,7 +325,7 @@ export default async function DashboardPage() {
                     <CreditCard className="h-4 w-4" />
                   </div>
                   <div className="text-2xl font-bold text-[#0F766E] mt-2">
-                    {formatCurrency(kpis.mrrCents)}
+                    {kpis.mrr}
                   </div>
                   <div className="text-[11px] text-[#64748B] mt-1">
                     {kpis.activeSubscriptions} assinaturas ativas
@@ -370,9 +342,6 @@ export default async function DashboardPage() {
                   <div className="text-2xl font-bold text-[#1E293B] mt-2 flex items-center gap-2">
                     <span>{kpis.averageRating}</span>
                     <span className="text-xs font-normal text-[#64748B]">/ 5.0</span>
-                  </div>
-                  <div className="text-[11px] text-[#16A34A] font-semibold mt-1">
-                    Excelente satisfação
                   </div>
                 </CardContent>
               </Card>

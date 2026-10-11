@@ -42,7 +42,7 @@ export function GlobalSearch() {
 
       setLoading(true)
       try {
-        // Busca rápida de demonstração / API de busca
+        // Busca no servidor (usuários e solicitações)
         const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
         if (res.ok) {
           const data = await res.json()

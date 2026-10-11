@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { PawPrint, Lock, Mail, Loader2, AlertCircle, ShieldCheck, UserCheck, KeyRound } from 'lucide-react'
+import { PawPrint, Lock, Mail, Loader2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
@@ -13,12 +13,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const router = useRouter()
-
-  function handleDemoLogin(role: 'admin' | 'support') {
-    document.cookie = `chamavet_demo_role=${role}; path=/; max-age=86400`
-    router.push('/')
-    router.refresh()
-  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -77,58 +71,6 @@ export default function LoginPage() {
           <p className="text-sm text-[#64748B]">
             Acesso exclusivo para a equipe de operação e suporte
           </p>
-        </div>
-
-        {/* Card de Teste Rápido de Papéis (Dev/Sandbox) */}
-        <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#0F766E] flex items-center gap-1.5">
-              <KeyRound className="h-3.5 w-3.5" /> Acesso Rápido de Testes
-            </span>
-            <span className="text-[10px] bg-[#CCFBF1] text-[#0F766E] px-2 py-0.5 rounded-full font-semibold">
-              Dev Mode
-            </span>
-          </div>
-          <p className="text-xs text-[#64748B]">
-            Teste as permissões de cada papel sem necessidade de credenciais do banco:
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              type="button"
-              variant="default"
-              size="sm"
-              onClick={() => handleDemoLogin('admin')}
-              className="text-xs gap-1.5"
-            >
-              <ShieldCheck className="h-4 w-4" /> Entrar como Admin
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => handleDemoLogin('support')}
-              className="text-xs gap-1.5"
-            >
-              <UserCheck className="h-4 w-4" /> Entrar como Suporte
-            </Button>
-          </div>
-          <div className="text-center pt-1">
-            <button
-              type="button"
-              onClick={() => router.push('/login/mfa?setup=true')}
-              className="text-[11px] text-[#64748B] hover:text-[#0F766E] underline"
-            >
-              Visualizar fluxo de cadastro de MFA (TOTP) →
-            </button>
-          </div>
-        </div>
-
-        <div className="relative flex items-center justify-center">
-          <div className="border-t border-[#E2E8F0] w-full" />
-          <span className="bg-white px-3 text-xs text-[#94A3B8] uppercase tracking-wider shrink-0 font-medium">
-            ou via Supabase Auth
-          </span>
-          <div className="border-t border-[#E2E8F0] w-full" />
         </div>
 
         {errorMessage && (

@@ -29,20 +29,11 @@ export async function middleware(request: NextRequest) {
 
   const isAuthRoute = pathname === '/login' || pathname.startsWith('/login/')
 
-  // Verificar se há sessão de demonstração ativa (Dev/Sandbox)
-  const demoRoleCookie = request.cookies.get('chamavet_demo_role')?.value
-  if (demoRoleCookie === 'admin' || demoRoleCookie === 'support') {
-    if (isAuthRoute && pathname !== '/login/mfa') {
-      return NextResponse.redirect(new URL('/', request.url))
-    }
-    return response
-  }
-
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const isSupabaseConfigured =
     supabaseUrl && !supabaseUrl.includes('placeholder.supabase.co')
 
-  // Se Supabase ainda não estiver configurado e sem demo cookie, permitir acessar a tela de login
+  // Se Supabase ainda não estiver configurado, só a tela de login fica acessível
   if (!isSupabaseConfigured) {
     if (!isAuthRoute) {
       return NextResponse.redirect(new URL('/login', request.url))

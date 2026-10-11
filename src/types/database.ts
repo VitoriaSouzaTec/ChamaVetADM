@@ -43,6 +43,7 @@ export interface Database {
           created_at?: string
         }
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>
+        Relationships: []
       }
       vets: {
         Row: {
@@ -67,6 +68,7 @@ export interface Database {
         }
         Insert: Partial<Database['public']['Tables']['vets']['Row']> & { id: string }
         Update: Partial<Database['public']['Tables']['vets']['Row']>
+        Relationships: []
       }
       clinics: {
         Row: {
@@ -86,6 +88,7 @@ export interface Database {
         }
         Insert: Partial<Database['public']['Tables']['clinics']['Row']> & { id: string }
         Update: Partial<Database['public']['Tables']['clinics']['Row']>
+        Relationships: []
       }
       specialties: {
         Row: {
@@ -97,6 +100,7 @@ export interface Database {
         }
         Insert: Partial<Database['public']['Tables']['specialties']['Row']>
         Update: Partial<Database['public']['Tables']['specialties']['Row']>
+        Relationships: []
       }
       vet_specialties: {
         Row: {
@@ -105,6 +109,7 @@ export interface Database {
         }
         Insert: { vet_id: string; specialty_id: string }
         Update: Partial<{ vet_id: string; specialty_id: string }>
+        Relationships: []
       }
       requests: {
         Row: {
@@ -127,6 +132,7 @@ export interface Database {
         }
         Insert: Partial<Database['public']['Tables']['requests']['Row']> & { clinic_id: string; description: string }
         Update: Partial<Database['public']['Tables']['requests']['Row']>
+        Relationships: []
       }
       interests: {
         Row: {
@@ -139,6 +145,7 @@ export interface Database {
         }
         Insert: Partial<Database['public']['Tables']['interests']['Row']>
         Update: Partial<Database['public']['Tables']['interests']['Row']>
+        Relationships: []
       }
       invitations: {
         Row: {
@@ -150,6 +157,7 @@ export interface Database {
         }
         Insert: Partial<Database['public']['Tables']['invitations']['Row']>
         Update: Partial<Database['public']['Tables']['invitations']['Row']>
+        Relationships: []
       }
       reviews: {
         Row: {
@@ -165,6 +173,7 @@ export interface Database {
         }
         Insert: Partial<Database['public']['Tables']['reviews']['Row']>
         Update: Partial<Database['public']['Tables']['reviews']['Row']>
+        Relationships: []
       }
       vet_documents: {
         Row: {
@@ -177,6 +186,7 @@ export interface Database {
         }
         Insert: Partial<Database['public']['Tables']['vet_documents']['Row']>
         Update: Partial<Database['public']['Tables']['vet_documents']['Row']>
+        Relationships: []
       }
       reports: {
         Row: {
@@ -195,6 +205,7 @@ export interface Database {
         }
         Insert: Partial<Database['public']['Tables']['reports']['Row']>
         Update: Partial<Database['public']['Tables']['reports']['Row']>
+        Relationships: []
       }
       staff_notes: {
         Row: {
@@ -207,6 +218,7 @@ export interface Database {
         }
         Insert: Partial<Database['public']['Tables']['staff_notes']['Row']>
         Update: Partial<Database['public']['Tables']['staff_notes']['Row']>
+        Relationships: []
       }
       announcements: {
         Row: {
@@ -223,6 +235,7 @@ export interface Database {
         }
         Insert: Partial<Database['public']['Tables']['announcements']['Row']>
         Update: Partial<Database['public']['Tables']['announcements']['Row']>
+        Relationships: []
       }
       audit_logs: {
         Row: {
@@ -240,6 +253,7 @@ export interface Database {
         }
         Insert: Partial<Database['public']['Tables']['audit_logs']['Row']>
         Update: never
+        Relationships: []
       }
       payments: {
         Row: {
@@ -254,6 +268,7 @@ export interface Database {
         }
         Insert: Partial<Database['public']['Tables']['payments']['Row']>
         Update: Partial<Database['public']['Tables']['payments']['Row']>
+        Relationships: []
       }
       subscriptions: {
         Row: {
@@ -267,6 +282,7 @@ export interface Database {
         }
         Insert: Partial<Database['public']['Tables']['subscriptions']['Row']>
         Update: Partial<Database['public']['Tables']['subscriptions']['Row']>
+        Relationships: []
       }
       clinic_credits: {
         Row: {
@@ -279,6 +295,7 @@ export interface Database {
         }
         Insert: Partial<Database['public']['Tables']['clinic_credits']['Row']>
         Update: Partial<Database['public']['Tables']['clinic_credits']['Row']>
+        Relationships: []
       }
       payment_events: {
         Row: {
@@ -293,6 +310,7 @@ export interface Database {
         }
         Insert: Partial<Database['public']['Tables']['payment_events']['Row']>
         Update: Partial<Database['public']['Tables']['payment_events']['Row']>
+        Relationships: []
       }
       app_config: {
         Row: {
@@ -303,6 +321,7 @@ export interface Database {
         }
         Insert: Partial<Database['public']['Tables']['app_config']['Row']>
         Update: Partial<Database['public']['Tables']['app_config']['Row']>
+        Relationships: []
       }
       pricing: {
         Row: {
@@ -314,9 +333,16 @@ export interface Database {
         }
         Insert: Partial<Database['public']['Tables']['pricing']['Row']>
         Update: Partial<Database['public']['Tables']['pricing']['Row']>
+        Relationships: []
       }
     }
     Views: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
       [_ in never]: never
     }
     Functions: {

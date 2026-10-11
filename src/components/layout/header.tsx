@@ -25,7 +25,6 @@ export function Header({
 
   async function handleSignOut() {
     try {
-      document.cookie = 'chamavet_demo_role=; path=/; max-age=0'
       const supabase = createClient()
       await supabase.auth.signOut()
     } catch {
